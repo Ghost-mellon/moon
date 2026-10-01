@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Chandra · Moon Cycle Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500;1,600&family=Inter:wght@300;400;500;600&family=Marcellus&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05060f;
+  --panel:linear-gradient(160deg, rgba(158,170,255,.075), rgba(110,100,210,.03));
+  --border:rgba(168,180,255,.14);
+  --text:#e9ebf7;
+  --muted:#99a1c8;
+  --faint:#6b739c;
+  --gold:#e9c46a;
+  --violet:#b79ced;
+  --serif:'Marcellus',serif;
+  --ital:'Cormorant Garamond',serif;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1100px 700px at 78% -10%, rgba(88,80,190,.16), transparent 60%),
+    radial-gradient(900px 600px at 8% 12%, rgba(60,90,180,.10), transparent 60%),
+    radial-gradient(1200px 900px at 50% 115%, rgba(150,110,60,.07), transparent 60%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.app{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:26px 20px 70px}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 4px 22px}
+.brand{display:flex;align-items:baseline;gap:12px}
+.brand .logo{font-family:var(--serif);font-size:30px;letter-spacing:.06em;color:#f2ecdc}
+.brand .logo b{color:var(--gold);font-weight:400}
+.brand .tag{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
+.clock{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;letter-spacing:.08em;text-align:right}
+.clock b{display:block;color:var(--text);font-size:16px;font-weight:500}
+
+/* ---------- panels ---------- */
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:22px;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 24px 70px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+/* ---------- hero ---------- */
+.hero{display:grid;grid-template-columns:minmax(300px,470px) 1fr;gap:8px;padding:34px 34px 30px;margin-bottom:22px}
+.moon-stage{position:relative;aspect-ratio:1;display:grid;place-items:center;min-height:300px}
+.orbit{position:absolute;inset:-3%;pointer-events:none}
+.orbit svg{width:100%;height:100%;overflow:visible}
+.orbit .ring1{animation:spin 220s linear infinite;transform-origin:50% 50%}
+.orbit .ring2{animation:spinR 160s linear infinite;transform-origin:50% 50%}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinR{to{transform:rotate(-360deg)}}
+#moonCv{width:min(64vw,392px);height:min(64vw,392px);position:relative;z-index:2}
+.moon-ctrl{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;z-index:3;background:rgba(8,10,24,.65);border:1px solid var(--border);padding:7px 10px;border-radius:999px;backdrop-filter:blur(8px)}
+.moon-ctrl button{background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;width:28px;height:28px;border-radius:50%;transition:.2s}
+.moon-ctrl button:hover{color:var(--gold);background:rgba(233,196,106,.1)}
+.moon-ctrl input{background:transparent;border:none;color:var(--text);font-family:var(--sans);font-size:12.5px;color-scheme:dark;outline:none;width:118px;text-align:center}
+.live-chip{display:none;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);background:rgba(233,196,106,.1);border:1px solid rgba(233,196,106,.3);border-radius:999px;padding:4px 10px;cursor:pointer;font-family:var(--sans)}
+.live-chip.on{display:inline-flex}
+.live-chip i{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+
+.hero-info{display:flex;flex-direction:column;justify-content:center;gap:16px;padding:6px 4px}
+.kicker{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold)}
+h1.phase{font-family:var(--ital);font-style:italic;font-weight:600;font-size:clamp(38px,4.6vw,58px);line-height:1.02;color:#f4efe2;text-shadow:0 0 34px rgba(233,220,180,.25)}
+.phase-date{color:var(--muted);font-size:13.5px;letter-spacing:.04em}
+
+.cycle-wrap{padding:6px 0 2px}
+.cycle-track{position:relative;height:26px;margin:0 12px}
+.cycle-line{position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);background:linear-gradient(90deg,rgba(160,170,230,.12),rgba(233,224,190,.5),rgba(160,170,230,.12));border-radius:2px}
+.cm{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:13px;filter:drop-shadow(0 0 5px rgba(255,240,200,.35));opacity:.85}
+.cycle-dot{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle at 35% 30%,#fff8e6,var(--gold) 65%);box-shadow:0 0 14px 3px rgba(233,196,106,.6);transition:left .6s cubic-bezier(.6,0,.3,1)}
+.cycle-labels{display:flex;justify-content:space-between;color:var(--faint);font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin:2px 12px 0}
+
+.countdowns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cd{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:16px;padding:12px 14px;background:rgba(10,12,28,.4)}
+.cd .ic{font-size:22px;filter:drop-shadow(0 0 8px rgba(255,240,210,.4))}
+.cd .tt{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.cd .vv{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;color:#f0ead8}
+.cd .dd{font-size:11px;color:var(--faint)}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{border:1px solid var(--border);border-radius:16px;padding:12px 13px;background:rgba(10,12,28,.4)}
+.stat .l{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
+.stat .v{font-size:16.5px;font-weight:600;color:#eef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .s{font-size:10.5px;color:var(--muted);margin-top:2px}
+
+/* ---------- calendar ---------- */
+.cal-panel{padding:26px 28px 24px;margin-bottom:22px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px}
+.sec-title{font-family:var(--serif);font-size:22px;letter-spacing:.05em;color:#f0ebdd}
+.sec-title span{color:var(--gold)}
+.cal-nav{display:flex;align-items:center;gap:10px}
+.cal-nav h3{font-family:var(--serif);font-size:17px;min-width:150px;text-align:center;font-weight:400;letter-spacing:.06em}
+.cal-nav button{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-size:15px;transition:.2s}
+.cal-nav button:hover{color:var(--gold);border-color:rgba(233,196,106,.4)}
+.phase-strip{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 18px}
+.ps{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:5px 11px;background:rgba(10,12,28,.4)}
+.ps b{color:#e8e2cf;font-weight:500}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.dow{text-align:center;font-size:10px;letter-spacing:.22em;color:var(--faint);text-transform:uppercase;padding:4px 0}
+.cell{position:relative;border:1px solid rgba(168,180,255,.08);border-radius:14px;min-height:74px;padding:7px 6px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:.18s;background:rgba(9,11,26,.35)}
+.cell:hover{border-color:rgba(233,196,106,.35);background:rgba(233,196,106,.05)}
+.cell.dim{opacity:.32}
+.cell.today .dnum{color:var(--gold)}
+.cell.today::after{content:'';position:absolute;top:7px;right:8px;width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 7px var(--gold)}
+.cell.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold), 0 0 18px rgba(233,196,106,.18)}
+.dnum{font-size:12px;font-weight:500;color:var(--muted)}
+.cell svg{width:24px;height:24px}
+.dots{display:flex;gap:3px;min-height:6px;margin-top:1px}
+.dots i{width:5px;height:5px;border-radius:50%;background:var(--c);box-shadow:0 0 5px var(--c)}
+.dots em{font-size:8px;color:var(--faint);font-style:normal}
+
+/* ---------- practices ---------- */
+.prac-grid{display:grid;grid-template-columns:minmax(320px,5fr) 6fr;gap:22px}
+.prac-grid .panel{padding:26px 26px 22px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.field input[type=text],.field input[type=date],.field input[type=number],.field select,.field textarea{
+  width:100%;background:rgba(8,10,24,.6);border:1px solid var(--border);border-radius:12px;color:var(--text);
+  font-family:var(--sans);font-size:13.5px;padding:10px 12px;outline:none;transition:.2s;color-scheme:dark}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(233,196,106,.45);box-shadow:0 0 0 3px rgba(233,196,106,.08)}
+.field textarea{resize:vertical;min-height:56px}
+.swatches{display:flex;gap:9px}
+.sw{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;background:var(--c);transition:.15s;position:relative}
+.sw.on{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.15),0 0 12px var(--c)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#f0d089,#d4a94e);color:#241a05;border:none;border-radius:13px;padding:12px 20px;font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:.08em;cursor:pointer;transition:.2s;width:100%}
+.btn:hover{filter:brightness(1.1);box-shadow:0 6px 24px rgba(233,196,106,.25)}
+.btn.ghost{background:none;border:1px solid var(--border);color:var(--muted);font-weight:500;width:auto;padding:8px 15px;font-size:12px}
+.btn.ghost:hover{color:var(--gold);border-color:rgba(233,196,106,.4);box-shadow:none}
+.form-msg{font-size:12px;color:#f2a0b5;min-height:16px;margin-top:8px;text-align:center}
+.form-msg.ok{color:#9ed1a0}
+
+.list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.badge{font-size:11px;color:var(--gold);border:1px solid rgba(233,196,106,.35);border-radius:999px;padding:3px 11px;background:rgba(233,196,106,.08)}
+.ev{display:flex;gap:13px;align-items:flex-start;border:1px solid var(--border);border-left:3px solid var(--c);border-radius:15px;padding:13px 14px;margin-bottom:10px;background:rgba(9,11,26,.4)}
+.ev-ic{font-size:19px;width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:color-mix(in srgb,var(--c) 14%, transparent);flex-shrink:0}
+.ev-main{flex:1;min-width:0}
+.ev-name{font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{font-size:9.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 45%, transparent);border-radius:999px;padding:2px 8px}
+.ev-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.ev-meta b{color:#e9e3d0;font-weight:500}
+.ev-notes{font-size:12px;color:var(--faint);font-style:italic;margin-top:4px}
+.ev-del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:13px;padding:4px;border-radius:8px;transition:.15s}
+.ev-del:hover{color:#f2a0b5;background:rgba(242,160,181,.1)}
+.empty{color:var(--faint);font-size:13px;text-align:center;padding:22px 10px;font-style:italic;font-family:var(--ital);font-size:16px}
+.sub-title{font-family:var(--serif);font-size:16px;color:#ece6d4;margin:20px 0 10px;letter-spacing:.06em}
+.up{display:flex;align-items:center;gap:12px;padding:9px 6px;border-bottom:1px solid rgba(168,180,255,.07)}
+.up:last-child{border-bottom:none}
+.up-dot{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);flex-shrink:0}
+.up-m{flex:1;min-width:0}
+.up-m b{font-size:13px;font-weight:600;display:block}
+.up-m span{font-size:11.5px;color:var(--muted)}
+.up .when{text-align:right;font-size:11px;color:var(--gold);white-space:nowrap}
+.up .when small{display:block;color:var(--faint);font-size:10px}
+.up svg{width:26px;height:26px;flex-shrink:0}
+.io{margin-top:18px;padding-top:14px;border-top:1px solid rgba(168,180,255,.09);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.io-note{font-size:10.5px;color:var(--faint);flex:1;min-width:140px}
+#ioBox{width:100%;display:none;margin-top:10px}
+#ioBox.open{display:block}
+#ioText{width:100%;min-height:90px;background:rgba(8,10,24,.7);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:ui-monospace,monospace;font-size:11px;padding:10px;color-scheme:dark}
+#ioMsg{font-size:11px;color:var(--muted);margin-left:6px}
+
+footer{text-align:center;color:var(--faint);font-size:11px;letter-spacing:.06em;margin-top:34px;line-height:1.8}
+footer b{color:var(--muted);font-weight:500}
+
+.toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,80px);background:rgba(14,16,34,.92);border:1px solid rgba(233,196,106,.4);color:#f0e6c8;font-size:13px;padding:11px 22px;border-radius:999px;z-index:50;transition:transform .45s cubic-bezier(.2,.9,.3,1.2);backdrop-filter:blur(10px);box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.toast.show{transform:translate(-50%,0)}
+
+@media (max-width:960px){
+  .hero{grid-template-columns:1fr;padding:26px 20px}
+  .prac-grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:620px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .countdowns{grid-template-columns:1fr}
+  .cell{min-height:60px;border-radius:11px}
+  .cell svg{width:19px;height:19px}
+  .brand .tag{display:none}
+  .cal-panel,.prac-grid .panel{padding:18px 14px}
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="logo">☾ <b>Chandra</b></div>
+      <div class="tag">Moon Cycle Companion</div>
+    </div>
+    <div class="clock"><b id="clkTime">—</b><span id="clkDate">—</span></div>
+  </header>
+
+  <main>
+    <!-- ================= HERO ================= -->
+    <section class="panel hero">
+      <div class="moon-stage">
+        <div class="orbit">
+          <svg viewBox="0 0 100 100">
+            <g class="ring1">
+              <circle cx="50" cy="50" r="47.5" fill="none" stroke="rgba(190,190,255,.16)" stroke-width=".35" stroke-dasharray=".6 2.1"/>
+              <circle cx="50" cy="2.5" r="1" fill="#e9c46a" opacity=".8"/>
+              <circle cx="97.5" cy="50" r=".7" fill="#b79ced" opacity=".7"/>
+              <circle cx="50" cy="97.5" r="1" fill="#e9c46a" opacity=".8"/>
+              <circle cx="2.5" cy="50" r=".7" fill="#b79ced" opacity=".7"/>
+            </g>
+            <g class="ring2">
+              <circle cx="50" cy="50" r="41" fill="none" stroke="rgba(233,196,106,.12)" stroke-width=".3" stroke-dasharray="4 3"/>
+            </g>
+          </svg>
+        </div>
+        <canvas id="moonCv"></canvas>
+        <div class="moon-ctrl">
+          <button id="btnPrev" title="Previous day">‹</button>
+          <input type="date" id="dateInput"/>
+          <button id="btnNext" title="Next day">›</button>
+          <button id="btnToday" title="Back to today" style="font-size:11px;width:auto;padding:0 9px">Today</button>
+          <span class="live-chip" id="liveChip" title="Return to live view"><i></i>Live</span>
+        </div>
+      </div>
+
+      <div class="hero-info">
+        <div>
+          <div class="kicker" id="phaseKicker">—</div>
+          <h1 class="phase" id="phaseName">—</h1>
+          <div class="phase-date" id="phaseDateLine">—</div>
+        </div>
+
+        <div class="cycle-wrap">
+          <div class="cycle-track">
+            <div class="cycle-line"></div>
+            <span class="cm" style="left:0%">🌑</span>
+            <span class="cm" style="left:25%">🌓</span>
+            <span class="cm" style="left:50%">🌕</span>
+            <span class="cm" style="left:75%">🌗</span>
+            <span class="cm" style="left:100%">🌑</span>
+            <div class="cycle-dot" id="cycleDot"></div>
+          </div>
+          <div class="cycle-labels"><span>New</span><span>First Qtr</span><span>Full</span><span>Last Qtr</span><span>New</span></div>
+        </div>
+
+        <div class="countdowns">
+          <div class="cd"><span class="ic">🌕</span><div><div class="tt">Next Full Moon</div><div class="vv" id="cdFullT">—</div><div class="dd" id="cdFullD">—</div></div></div>
+          <div class="cd"><span class="ic">🌑</span><div><div class="tt">Next New Moon</div><div class="vv" id="cdNewT">—</div><div class="dd" id="cdNewD">—</div></div></div>
+        </div>
+
+        <div class="stats" id="statsGrid"></div>
+      </div>
+    </section>
+
+    <!-- ================= CALENDAR ================= -->
+    <section class="panel cal-panel">
+      <div class="cal-head">
+        <div class="sec-title">Moon <span>Calendar</span></div>
+        <div class="cal-nav">
+          <button id="btnMPrev">‹</button>
+          <h3 id="calTitle">—</h3>
+          <button id="btnMNext">›</button>
+        </div>
+      </div>
+      <div class="phase-strip" id="phaseStrip"></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </section>
+
+    <!-- ================= PRACTICES ================= -->
+    <section class="prac-grid">
+      <div class="panel">
+        <div class="sec-title" style="margin-bottom:18px">Add a <span>Practice</span></div>
+        <div class="field"><label>Name of practice</label><input type="text" id="fName" placeholder="e.g. Ekadashi fast, Full moon pooja…" maxlength="60"/></div>
+        <div class="field"><label>Type</label>
+          <select id="fType">
+            <option value="fasting">🍃 Fasting</option>
+            <option value="meditation">🧘 Meditation</option>
+            <option value="ritual">🪔 Ritual / Pooja</option>
+            <option value="manifest">✨ Intention / Manifestation</option>
+            <option value="rest">🌙 Rest &amp; Reflection</option>
+            <option value="other">★ Other</option>
+          </select>
+        </div>
+        <div class="field"><label>When does it fall?</label>
+          <select id="fMode">
+            <option value="phase">On a moon phase — repeats every cycle</option>
+            <option value="tithi">On a lunar day / tithi — repeats every cycle</option>
+            <option value="date">On one specific date</option>
+          </select>
+        </div>
+        <div class="field" id="wPhase"><label>Moon phase</label>
+          <select id="fPhase">
+            <option value="0">🌑 New Moon (Amavasya)</option>
+            <option value="0.25">🌓 First Quarter</option>
+            <option value="0.5" selected>🌕 Full Moon (Purnima)</option>
+            <option value="0.75">🌗 Last Quarter</option>
+          </select>
+        </div>
+        <div class="field" id="wTithi" style="display:none"><label>Lunar day (tithi)</label><select id="fTithi"></select></div>
+        <div class="field" id="wDate" style="display:none"><label>Date</label><input type="date" id="fDate"/></div>
+        <div class="field"><label>Duration (days)</label><input type="number" id="fDur" min="1" max="7" value="1"/></div>
+        <div class="field"><label>Colour</label><div class="swatches" id="swatches"></div></div>
+        <div class="field"><label>Notes (optional)</label><textarea id="fNotes" placeholder="How you observe it — foods, mantras, timings…" maxlength="240"></textarea></div>
+        <button class="btn" id="btnAdd">✦ &nbsp;Add to my cycle</button>
+        <div class="form-msg" id="formMsg"></div>
+      </div>
+
+      <div class="panel">
+        <div class="list-head">
+          <div class="sec-title">Your <span>Practices</span></div>
+          <span class="badge" id="evCount">0</span>
+        </div>
+        <div id="evList"></div>
+
+        <div class="sub-title">✦ Upcoming observances</div>
+        <div id="upList"></div>
+
+        <div class="io">
+          <span class="io-note">Practices live in this session — export to keep them safe.</span>
+          <button class="btn ghost" id="btnExport">Export</button>
+          <button class="btn ghost" id="btnImport">Import</button>
+          <div id="ioBox">
+            <textarea id="ioText" placeholder="Exported JSON appears here — or paste a backup, then Apply import."></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+              <button class="btn ghost" id="ioCopy">Copy</button>
+              <button class="btn ghost" id="ioApply">Apply import</button>
+              <span id="ioMsg"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <b>Chandra</b> · lunar phases, tithi &amp; nakshatra computed astronomically in your browser (accurate to ~1 hour)<br/>
+    May your cycles be luminous ☾
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ASTRONOMY CORE
+============================================================ */
+const SYNODIC = 29.530588853;          // synodic month, days
+const REF_NEW = 2451550.1;             // JD of new moon 2000-01-06 18:14 UTC
+const DAY = 86400000;
+
+const julian = d => d.getTime()/DAY + 2440587.5;
+function phaseAt(date){ const p = (julian(date)-REF_NEW)/SYNODIC; return p - Math.floor(p); }
+const illumAt = p => (1 - Math.cos(2*Math.PI*p))/2;
+const ageAt = p => p*SYNODIC;
+
+function phaseName(p){
+  // snap to exact points
+  const dTo = t => { let d = Math.abs(p-t); return Math.min(d, 1-d); };
+  if (dTo(0) < 0.004) return "New Moon";
+  if (dTo(0.5) < 0.004) return "Full Moon";
+  const names = ["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
+  return names[Math.floor(p*8 + 0.5) % 8];
+}
+
+/* Next moment the cycle fraction hits `target` (0=new,.25,.5,.75 or tithi fraction) */
+function nextPhaseDate(target, from){
+  const p0 = phaseAt(from);
+  let d = ((target - p0) % 1 + 1) % 1;
+  let est = from.getTime() + d*SYNODIC*DAY;
+  for (let i=0;i<4;i++){                       // Newton-style refine (rate ~constant)
+    const p = phaseAt(new Date(est));
+    let err = ((target - p) % 1 + 1) % 1; if (err > 0.5) err -= 1;
+    est += err*SYNODIC*DAY;
+  }
+  return new Date(est);
+}
+
+/* Moon distance (km), simplified series */
+function moonDistance(date){
+  const jd = julian(date), t = jd - 2451562.2;
+  const M  = 2*Math.PI*(((t/27.55454988)%1+1)%1);
+  const Dm = 2*Math.PI*(((t/SYNODIC)%1+1)%1);
+  return Math.round(385001 - 20905*Math.cos(M) - 3700*Math.cos(2*Dm - M) - 2956*Math.cos(2*Dm));
+}
+
+/* Ecliptic longitude of the Moon (degrees, tropical) */
+function moonLongitude(date){
+  const jd = julian(date), T = (jd-2451545.0)/36525, r = Math.PI/180;
+  const Lp = 218.3164477 + 481267.88123421*T - 0.0015786*T*T + T*T*T/538841 - T*T*T*T/65194000;
+  const D  = 297.8501921 + 445267.1114034*T - 0.0018819*T*T;
+  const M  = 357.5291092 + 35999.0502909*T - 0.0001536*T*T;
+  const Mp = 134.9633964 + 477198.8675055*T + 0.0087414*T*T;
+  const F  = 93.2720950 + 483202.0175233*T - 0.0036539*T*T;
+  const lon = Lp + 6.289*Math.sin(Mp*r) + 1.274*Math.sin((2*D-Mp)*r) + 0.658*Math.sin(2*D*r)
+            + 0.214*Math.sin(2*Mp*r) - 0.186*Math.sin(M*r) - 0.114*Math.sin(2*F*r);
+  return ((lon%360)+360)%360;
+}
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const GLYPHS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
+const NAKS = ["Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha","Magha","Purva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha","Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"];
+function ayanamsa(date){ const y = 2000 + (julian(date)-2451545)/365.2425; return 23.853 + (y-2000)*0.01397; }
+function nakshatra(date){ const sid = ((moonLongitude(date)-ayanamsa(date))%360+360)%360; return NAKS[Math.floor(sid/(360/27))]; }
+function zodiac(date){ const l = moonLongitude(date); const i = Math.floor(l/30); return GLYPHS[i]+" "+SIGNS[i]; }
+
+/* Tithi (Vedic lunar day) */
+const TITHI_N = ["Pratipada","Dwitiya","Tritiya","Chaturthi","Panchami","Shashthi","Saptami","Ashtami","Navami","Dashami","Ekadashi","Dwadashi","Trayodashi","Chaturdashi"];
+function tithiOf(p){ return Math.floor(p*30)+1; }          // 1..30
+function tithiLabel(t){
+  const paksha = t<=15 ? "Shukla" : "Krishna";
+  const idx = (t-1)%15;
+  const name = idx===14 ? (t===15 ? "Purnima" : "Amavasya") : TITHI_N[idx];
+  return paksha+" "+name;
+}
+
+/* ============================================================
+   MOON IMAGE — per-pixel shaded sphere w/ procedural albedo
+============================================================ */
+const RES = 560, RR = RES/2 - 3, CX = RES/2, CY = RES/2;
+const albedo = new Float32Array(RES*RES);
+
+(function buildAlbedo(){
+  albedo.fill(1);
+  let seed = 1234567;
+  const rnd = () => { seed = (seed*16807)%2147483647; return seed/2147483647; };
+  function noiseLayer(cells, amp){
+    const g = new Float32Array((cells+1)*(cells+1));
+    for (let i=0;i<g.length;i++) g[i]=rnd();
+    for (let y=0;y<RES;y++){
+      const fy = y/RES*cells, iy = Math.floor(fy), ty = fy-iy, sy = ty*ty*(3-2*ty);
+      for (let x=0;x<RES;x++){
+        const fx = x/RES*cells, ix = Math.floor(fx), tx = fx-ix, sx = tx*tx*(3-2*tx);
+        const i00=g[iy*(cells+1)+ix], i10=g[iy*(cells+1)+ix+1], i01=g[(iy+1)*(cells+1)+ix], i11=g[(iy+1)*(cells+1)+ix+1];
+        albedo[y*RES+x] += (i00+(i10-i00)*sx+(i01-i00)*sy+(i00-i10-i01+i11)*sx*sy - .5)*amp;
+      }
+    }
+  }
+  noiseLayer(5,.30); noiseLayer(11,.15); noiseLayer(25,.08);
+  // maria — soft dark basalt patches
+  const maria = [[-.26,-.14,.36],[.16,-.02,.30],[-.06,.24,.31],[.34,.26,.18],[-.42,.18,.17],[.04,-.36,.22],[.28,-.3,.15]];
+  for (const [mx,my,mr] of maria){
+    const cxp = CX+mx*RR, cyp = CY+my*RR, rad = mr*RR;
+    const x0=Math.max(0,Math.floor(cxp-rad)), x1=Math.min(RES-1,Math.ceil(cxp+rad));
+    const y0=Math.max(0,Math.floor(cyp-rad)), y1=Math.min(RES-1,Math.ceil(cyp+rad));
+    for (let y=y0;y<=y1;y++) for (let x=x0;x<=x1;x++){
+      const d = Math.hypot(x-cxp,y-cyp)/rad;
+      if (d<1){ const s = 1 - d*d*(3-2*d); const idx=y*RES+x; albedo[idx] *= 1 - .34*s*(0.65+0.7*Math.abs(albedo[idx]-0.9)); }
+    }
+  }
+  // craters — subtle dark bowls with bright rims
+  for (let c=0;c<120;c++){
+    const a = rnd()*2*Math.PI, rd = Math.sqrt(rnd())*.92;
+    const cxp = CX+Math.cos(a)*rd*RR, cyp = CY+Math.sin(a)*rd*RR;
+    const cr = 1.1 + rnd()*rnd()*7;
+    const x0=Math.max(0,Math.floor(cxp-cr)), x1=Math.min(RES-1,Math.ceil(cxp+cr));
+    const y0=Math.max(0,Math.floor(cyp-cr)), y1=Math.min(RES-1,Math.ceil(cyp+cr));
+    for (let y=y0;y<=y1;y++) for (let x=x0;x<=x1;x++){
+      const t = Math.hypot(x-cxp,y-cyp)/cr;
+      if (t<1){
+        const idx=y*RES+x;
+        albedo[idx] *= 1 - .14*(1-t*t);
+        if (t>.72) albedo[idx] *= 1 + .16*Math.sin((t-.72)/.28*Math.PI);
+      }
+    }
+  }
+  for (let i=0;i<albedo.length;i++) albedo[i] = Math.min(1.08, Math.max(.42, albedo[i]));
+})();
+
+const moonImg = document.createElement('canvas'); moonImg.width = moonImg.height = RES;
+const mctx = moonImg.getContext('2d');
+let renderedP = -1;
+function renderMoonImage(p){
+  const img = mctx.createImageData(RES,RES), d = img.data;
+  const th = 2*Math.PI*p, Lx = Math.sin(th), Lz = -Math.cos(th);
+  const E = 0.11;                                   // earthshine
+  let i = 0;
+  for (let y=0;y<RES;y++){
+    const dy = (y-CY)/RR;
+    for (let x=0;x<RES;x++, i+=4){
+      const dx = (x-CX)/RR, r2 = dx*dx+dy*dy;
+      if (r2 > 1){ d[i+3]=0; continue; }
+      const dz = Math.sqrt(1-r2);
+      let lit = dx*Lx + dz*Lz; if (lit<0) lit=0;
+      const alb = albedo[y*RES+x];
+      const limb = .70 + .30*dz;
+      const dith = (Math.random()-.5)*2.2;
+      d[i]   = Math.min(255, alb*(lit*255 + E*118)*limb + dith);
+      d[i+1] = Math.min(255, alb*(lit*246 + E*128)*limb + dith);
+      d[i+2] = Math.min(255, alb*(lit*228 + E*170)*limb + dith);
+      d[i+3] = 255;
+    }
+  }
+  mctx.putImageData(img,0,0);
+  renderedP = p;
+}
+
+/* ============================================================
+   CANVASES — starfield + hero moon (single rAF loop)
+============================================================ */
+const starCv = document.getElementById('stars'), sctx = starCv.getContext('2d');
+const moonCv = document.getElementById('moonCv'), mvctx = moonCv.getContext('2d');
+const DPR = Math.min(2, window.devicePixelRatio||1);
+let stars = [], curIllum = 0;
+function sizeCanvases(){
+  starCv.width = innerWidth*DPR; starCv.height = innerHeight*DPR;
+  starCv.style.width = innerWidth+'px'; starCv.style.height = innerHeight+'px';
+  sctx.setTransform(DPR,0,0,DPR,0,0);
+  stars = Array.from({length:190},()=>({
+    x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+    r:.4+Math.random()*1.2, sp:.4+Math.random()*1.4, ph:Math.random()*6.28, gold:Math.random()<.18
+  }));
+  const s = moonCv.clientWidth || 380;
+  moonCv.width = s*DPR; moonCv.height = s*DPR;
+  mvctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener('resize', sizeCanvases);
+
+function frame(t){
+  // stars
+  sctx.clearRect(0,0,innerWidth,innerHeight);
+  for (const s of stars){
+    const a = .18 + .6*(.5+.5*Math.sin(t/1000*s.sp + s.ph));
+    sctx.fillStyle = s.gold ? `rgba(240,220,170,${a})` : `rgba(205,212,255,${a})`;
+    sctx.beginPath(); sctx.arc(s.x,s.y,s.r,0,6.284); sctx.fill();
+  }
+  // moon
+  const w = moonCv.width/DPR, h = moonCv.height/DPR;
+  mvctx.clearRect(0,0,w,h);
+  const cxp = w/2, cyp = h/2 + Math.sin(t/1900)*5;
+  const mr = Math.min(w,h)*.37;
+  const gA = (.10 + .32*curIllum) * (0.92 + 0.08*Math.sin(t/2300));
+  const g = mvctx.createRadialGradient(cxp,cyp,mr*.5,cxp,cyp,mr*2.4);
+  g.addColorStop(0, `rgba(216,208,255,${gA})`);
+  g.addColorStop(.42, `rgba(150,150,235,${gA*.34})`);
+  g.addColorStop(1, 'rgba(120,120,220,0)');
+  mvctx.fillStyle = g; mvctx.fillRect(0,0,w,h);
+  mvctx.save();
+  mvctx.shadowColor = `rgba(238,232,255,${.25+.5*curIllum})`;
+  mvctx.shadowBlur = 28 + 70*curIllum;
+  mvctx.drawImage(moonImg, cxp-mr, cyp-mr, mr*2, mr*2);
+  mvctx.restore();
+  mvctx.beginPath(); mvctx.arc(cxp,cyp,mr,0,6.284);
+  mvctx.strokeStyle = 'rgba(255,255,255,.09)'; mvctx.lineWidth = 1; mvctx.stroke();
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   SMALL PHASE ICON (SVG) — calendar & timeline
+============================================================ */
+function moonSVG(p, glow){
+  const r = 9, e = Math.abs(Math.cos(2*Math.PI*p)), il = illumAt(p);
+  let lit = '';
+  const f = glow ? ' style="filter:drop-shadow(0 0 3px rgba(245,235,205,.5))"' : '';
+  if (il > .985) lit = `<circle cx="0" cy="0" r="${r}" fill="#f2ead6"${f}/>`;
+  else if (il > .015){
+    const er = Math.max(e*r,.4);
+    if (p < .5){ const s = p<.25?0:1; lit = `<path d="M0,${-r} A${r},${r} 0 0 1 0,${r} A${er},${r} 0 0 ${s} 0,${-r} Z" fill="#f2ead6"${f}/>`; }
+    else { const s = p<.75?1:0; lit = `<path d="M0,${r} A${r},${r} 0 0 1 0,${-r} A${er},${r} 0 0 ${s} 0,${r} Z" fill="#f2ead6"${f}/>`; }
+  }
+  return `<svg viewBox="-13 -13 26 26"><circle cx="0" cy="0" r="${r}" fill="#232942" stroke="rgba(255,255,255,.13)" stroke-width=".6"/>${lit}</svg>`;
+}
+
+/* ============================================================
+   STATE + FORMAT HELPERS
+============================================================ */
+const $ = id => document.getElementById(id);
+const noon = d => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const sameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+const fmtD = d => d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+const fmtDY = d => d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
+function relDays(d){
+  const diff = Math.round((startOfDay(d) - startOfDay(new Date()))/DAY);
+  if (diff<=0) return "Today"; if (diff===1) return "Tomorrow"; return `in ${diff} days`;
+}
+
+const state = {
+  selected: noon(new Date()),
+  live: true,
+  calY: new Date().getFullYear(),
+  calM: new Date().getMonth(),
+  nextFull: null, nextNew: null
+};
+const effDate = () => state.live ? new Date() : state.selected;
+
+/* ============================================================
+   HERO RENDER
+============================================================ */
+function renderHero(){
+  const d = effDate(), p = phaseAt(d), il = illumAt(p), age = ageAt(p);
+  curIllum = il;
+  if (Math.abs(p - renderedP) > .0004) renderMoonImage(p);
+
+  $('phaseKicker').textContent = `${p<.5?'Waxing':'Waning'} · Lunar day ${Math.floor(age)+1} of 29.5`;
+  $('phaseName').textContent = phaseName(p);
+  $('phaseDateLine').textContent = d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+     + (state.live ? ' · live' : ' · phase shown at noon');
+  $('cycleDot').style.left = (p*100)+'%';
+
+  state.nextFull = nextPhaseDate(.5, d);
+  state.nextNew  = nextPhaseDate(0, d);
+  updateCountdowns();
+
+  const t = tithiOf(p);
+  const stats = [
+    ['Illumination', (il*100).toFixed(1)+'%', 'of the disc is lit'],
+    ['Moon age', age.toFixed(1)+' d', 'since last new moon'],
+    ['Tithi', tithiLabel(t), 'Vedic lunar day '+t+' of 30'],
+    ['Nakshatra', nakshatra(d), 'sidereal lunar mansion'],
+    ['Moon sign', zodiac(d), 'tropical zodiac'],
+    ['Distance', moonDistance(d).toLocaleString()+' km', 'from Earth']
+  ];
+  $('statsGrid').innerHTML = stats.map(([l,v,s])=>`<div class="stat"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+
+  // phase strip (calendar section)
+  const princ = [[0,'🌑','New Moon'],[.25,'🌓','First Quarter'],[.5,'🌕','Full Moon'],[.75,'🌗','Last Quarter']];
+  const ups = princ.map(([t,ic,n])=>({d:nextPhaseDate(t,d),ic,n})).sort((a,b)=>a.d-b.d);
+  $('phaseStrip').innerHTML = ups.map(u=>`<span class="ps">${u.ic} <b>${u.n}</b> ${fmtD(u.d)} · ${relDays(u.d)}</span>`).join('');
+
+  // live chip / date input
+  $('liveChip').classList.toggle('on', !state.live);
+  const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  if ($('dateInput').value !== iso) $('dateInput').value = iso;
+}
+
+function fmtCD(target, base){
+  let ms = target - base; if (ms<0) ms=0;
+  const dd = Math.floor(ms/DAY), hh = Math.floor(ms/3600000)%24, mm = Math.floor(ms/60000)%60, ss = Math.floor(ms/1000)%60;
+  return `${dd}d ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+function updateCountdowns(){
+  const d = effDate();
+  if (!state.nextFull || !state.nextNew) return;
+  if (d > new Date(state.nextFull.getTime()+ 6*3600000) || d > new Date(state.nextNew.getTime()+6*3600000)){
+    state.nextFull = nextPhaseDate(.5, d); state.nextNew = nextPhaseDate(0, d);
+  }
+  $('cdFullT').textContent = fmtCD(state.nextFull, d);
+  $('cdNewT').textContent = fmtCD(state.nextNew, d);
+  $('cdFullD').textContent = fmtDY(state.nextFull);
+  $('cdNewD').textContent = fmtDY(state.nextNew);
+}
+
+/* ============================================================
+   PRACTICES (EVENTS) ENGINE
+============================================================ */
+const TYPES = {fasting:'🍃',meditation:'🧘',ritual:'🪔',manifest:'✨',rest:'🌙',other:'★'};
+const TYPE_L = {fasting:'Fasting',meditation:'Meditation',ritual:'Ritual / Pooja',manifest:'Intention',rest:'Rest',other:'Other'};
+const PHASES = {0:{ic:'🌑',n:'New Moon'},0.25:{ic:'🌓',n:'First Quarter'},0.5:{ic:'🌕',n:'Full Moon'},0.75:{ic:'🌗',n:'Last Quarter'}};
+const COLORS = ['#e9c46a','#f2a0b5','#b79ced','#7fd1c7','#8ab4f8','#9ed1a0'];
+
+let events = [
+  {id:1,name:'Ekadashi Fast',type:'fasting',mode:'tithi',tithi:11,duration:1,color:'#e9c46a',notes:'Fast from sunrise; break after moonrise with a light sattvic meal.'},
+  {id:2,name:'Full Moon Meditation',type:'meditation',mode:'phase',phaseTarget:0.5,duration:1,color:'#b79ced',notes:'Chandra namaskar, chanting & gratitude under the full moon.'},
+  {id:3,name:'New Moon Intentions',type:'manifest',mode:'phase',phaseTarget:0,duration:1,color:'#7fd1c7',notes:'Write intentions for the coming cycle. Keep the evening quiet.'}
+];
+let nextId = 4;
+
+function occurrencesOf(ev, from, to){
+  const out = [];
+  if (ev.mode === 'date'){
+    const [y,m,dd] = ev.date.split('-').map(Number);
+    const d = new Date(y, m-1, dd, 12);
+    if (d >= from && d <= to) out.push(d);
+    return out;
+  }
+  const target = ev.mode === 'phase' ? ev.phaseTarget : (ev.tithi-1)/30;
+  let cur = new Date(from.getTime() - 2*DAY);
+  for (let g=0; g<60; g++){
+    const occ = nextPhaseDate(target, cur);
+    if (occ > to) break;
+    if (occ >= from) out.push(occ);
+    cur = new Date(occ.getTime() + 12*3600000);
+  }
+  return out;
+}
+const nextOcc = ev => occurrencesOf(ev, startOfDay(new Date()), new Date(Date.now()+400*DAY))[0] || null;
+
+function modeLabel(ev){
+  if (ev.mode === 'date') return 'Once · ' + fmtDY(new Date(ev.date+'T12:00:00'));
+  if (ev.mode === 'phase') return 'Every ' + PHASES[ev.phaseTarget].n;
+  return 'Every ' + tithiLabel(ev.tithi) + ' · tithi ' + ev.tithi;
+}
+
+function refreshEvents(){
+  // list
+  const sorted = [...events].sort((a,b)=>{ const x=nextOcc(a), y=nextOcc(b); return (x?x.getTime():9e15)-(y?y.getTime():9e15); });
+  $('evCount').textContent = events.length + ' active';
+  $('evList').innerHTML = sorted.length ? sorted.map(ev=>{
+    const nx = nextOcc(ev);
+    return `<div class="ev" style="--c:${ev.color}">
+      <div class="ev-ic">${TYPES[ev.type]||'★'}</div>
+      <div class="ev-main">
+        <div class="ev-name">${esc(ev.name)} <span class="chip">${TYPE_L[ev.type]||'Other'}</span></div>
+        <div class="ev-meta">${modeLabel(ev)} · ${ev.duration} day${ev.duration>1?'s':''}${nx ? ` · Next: <b>${fmtD(nx)}</b> · ${relDays(nx)}` : ' · no upcoming date'}</div>
+        ${ev.notes ? `<div class="ev-notes">“${esc(ev.notes)}”</div>` : ''}
+      </div>
+      <button class="ev-del" data-del="${ev.id}" title="Remove">✕</button>
+    </div>`;
+  }).join('') : `<div class="empty">No practices yet — add your first moon ritual ☾</div>`;
+
+  // upcoming timeline
+  const now0 = startOfDay(new Date()), horizon = new Date(now0.getTime()+75*DAY);
+  const ups = [];
+  for (const ev of events) for (const d of occurrencesOf(ev, now0, horizon)) ups.push({ev, d});
+  ups.sort((a,b)=>a.d-b.d);
+  $('upList').innerHTML = ups.length ? ups.slice(0,14).map(({ev,d})=>
+    `<div class="up" style="--c:${ev.color}">
+       <span class="up-dot"></span>
+       <div class="up-m"><b>${TYPES[ev.type]||'★'} ${esc(ev.name)}</b><span>${fmtDY(d)} · ${ev.duration} day${ev.duration>1?'s':''}</span></div>
+       <div class="when">${relDays(d)}<small>${phaseName(phaseAt(d))}</small></div>
+       ${moonSVG(phaseAt(d), true)}
+     </div>`).join('')
+    : `<div class="empty">Nothing on the horizon yet.</div>`;
+
+  renderCalendar();
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ============================================================
+   CALENDAR
+============================================================ */
+function renderCalendar(){
+  const y = state.calY, m = state.calM;
+  $('calTitle').textContent = new Date(y,m,1).toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  const first = new Date(y,m,1), startIdx = first.getDay();
+  const dim = new Date(y,m+1,0).getDate();
+  const monthStart = new Date(y,m,1), monthEnd = new Date(y,m+1,0,23,59);
+
+  // event dot map
+  const marks = {};
+  for (const ev of events){
+    for (const occ of occurrencesOf(ev, new Date(monthStart.getTime()-8*DAY), monthEnd)){
+      for (let k=0;k<ev.duration;k++){
+        const d = new Date(occ.getTime()+k*DAY);
+        if (d < monthStart || d > monthEnd) continue;
+        const key = d.getDate();
+        (marks[key] = marks[key] || []).push(ev.color);
+      }
+    }
+  }
+
+  let html = ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="dow">${d}</div>`).join('');
+  const prevDim = new Date(y,m,0).getDate();
+  const today = new Date();
+  for (let i=0;i<42;i++){
+    const dayNum = i - startIdx + 1;
+    if (dayNum < 1){ html += `<div class="cell dim"><span class="dnum">${prevDim+dayNum}</span></div>`; continue; }
+    if (dayNum > dim){ html += `<div class="cell dim"><span class="dnum">${dayNum-dim}</span></div>`; continue; }
+    const d = new Date(y,m,dayNum,12);
+    const p = phaseAt(d);
+    const cls = ['cell', sameDay(d,today)?'today':'', sameDay(d,state.selected)?'sel':''].join(' ');
+    const dots = (marks[dayNum]||[]).slice(0,3).map(c=>`<i style="--c:${c}"></i>`).join('')
+               + ((marks[dayNum]||[]).length>3 ? `<em>+${marks[dayNum].length-3}</em>` : '');
+    html += `<div class="${cls}" data-day="${dayNum}" title="${phaseName(p)} · ${(illumAt(p)*100).toFixed(0)}% lit">
+      <span class="dnum">${dayNum}</span>${moonSVG(p,false)}<div class="dots">${dots}</div></div>`;
+  }
+  $('calGrid').innerHTML = html;
+}
+
+/* ============================================================
+   WIRING
+============================================================ */
+function setSelected(d){
+  state.selected = noon(d);
+  state.live = sameDay(d, new Date());
+  if (d.getFullYear()!==state.calY || d.getMonth()!==state.calM){ state.calY=d.getFullYear(); state.calM=d.getMonth(); }
+  renderHero(); renderCalendar();
+}
+$('btnPrev').onclick = () => setSelected(new Date(state.selected.getTime()-DAY));
+$('btnNext').onclick = () => setSelected(new Date(state.selected.getTime()+DAY));
+$('btnToday').onclick = () => setSelected(new Date());
+$('liveChip').onclick = () => setSelected(new Date());
+$('dateInput').onchange = e => { if (e.target.value){ const [y,m,d]=e.target.value.split('-').map(Number); setSelected(new Date(y,m-1,d,12)); } };
+$('btnMPrev').onclick = () => { const d=new Date(state.calY,state.calM-1,1); state.calY=d.getFullYear(); state.calM=d.getMonth(); renderCalendar(); };
+$('btnMNext').onclick = () => { const d=new Date(state.calY,state.calM+1,1); state.calY=d.getFullYear(); state.calM=d.getMonth(); renderCalendar(); };
+$('calGrid').onclick = e => { const c = e.target.closest('[data-day]'); if (c) setSelected(new Date(state.calY,state.calM,+c.dataset.day,12)); };
+
+/* form */
+const fMode=$('fMode');
+fMode.onchange = () => {
+  $('wPhase').style.display = fMode.value==='phase' ? '' : 'none';
+  $('wTithi').style.display = fMode.value==='tithi' ? '' : 'none';
+  $('wDate').style.display  = fMode.value==='date'  ? '' : 'none';
+};
+let selColor = COLORS[0];
+$('swatches').innerHTML = COLORS.map((c,i)=>`<span class="sw${i===0?' on':''}" style="--c:${c}" data-c="${c}"></span>`).join('');
+$('swatches').onclick = e => { const s=e.target.closest('.sw'); if(!s) return; selColor=s.dataset.c;
+  [...$('swatches').children].forEach(x=>x.classList.toggle('on',x===s)); };
+
+// tithi dropdown
+$('fTithi').innerHTML = Array.from({length:30},(_,i)=>`<option value="${i+1}"${i===10?' selected':''}>${i+1} · ${tithiLabel(i+1)}</option>`).join('');
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600); }
+
+$('btnAdd').onclick = () => {
+  const name = $('fName').value.trim(), mode = fMode.value, msg = $('formMsg');
+  msg.classList.remove('ok');
+  if (!name){ msg.textContent = 'Please give your practice a name.'; return; }
+  const ev = { id: nextId++, name, type: $('fType').value, mode,
+    duration: Math.min(7, Math.max(1, parseInt($('fDur').value)||1)),
+    color: selColor, notes: $('fNotes').value.trim() };
+  if (mode === 'date'){
+    if (!$('fDate').value){ msg.textContent = 'Please choose a date.'; return; }
+    ev.date = $('fDate').value;
+  }
+  if (mode === 'phase') ev.phaseTarget = parseFloat($('fPhase').value);
+  if (mode === 'tithi') ev.tithi = parseInt($('fTithi').value);
+  events.push(ev);
+  $('fName').value=''; $('fNotes').value=''; msg.textContent='';
+  refreshEvents();
+  toast(`✦ “${name}” added to your cycle`);
+};
+
+$('evList').onclick = e => {
+  const b = e.target.closest('[data-del]'); if (!b) return;
+  events = events.filter(ev => ev.id !== +b.dataset.del);
+  refreshEvents(); toast('Practice removed');
+};
+
+/* export / import */
+$('btnExport').onclick = async () => {
+  $('ioBox').classList.add('open');
+  $('ioText').value = JSON.stringify(events, null, 2);
+  $('ioMsg').textContent = '';
+  try { await navigator.clipboard.writeText($('ioText').value); $('ioMsg').textContent = 'Copied to clipboard ✓'; }
+  catch { $('ioMsg').textContent = 'Select the text & copy manually.'; }
+};
+$('btnImport').onclick = () => { $('ioBox').classList.toggle('open'); $('ioMsg').textContent=''; };
+$('ioCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('ioText').value); $('ioMsg').textContent='Copied ✓'; }
+  catch { $('ioText').select(); $('ioMsg').textContent='Select & copy manually.'; }
+};
+$('ioApply').onclick = () => {
+  try {
+    const arr = JSON.parse($('ioText').value);
+    if (!Array.isArray(arr)) throw 0;
+    let n = 0;
+    for (const raw of arr){
+      if (!raw || typeof raw.name !== 'string') continue;
+      const ev = { id: nextId++, name: raw.name.slice(0,60), type: TYPES[raw.type]?raw.type:'other',
+        mode: ['date','phase','tithi'].includes(raw.mode)?raw.mode:'date',
+        duration: Math.min(7,Math.max(1,parseInt(raw.duration)||1)),
+        color: COLORS.includes(raw.color)?raw.color:COLORS[0], notes: String(raw.notes||'').slice(0,240) };
+      if (ev.mode==='date'){ if(!/^\d{4}-\d{2}-\d{2}$/.test(raw.date||'')) continue; ev.date=raw.date; }
+      if (ev.mode==='phase'){ const pt=parseFloat(raw.phaseTarget); if(![0,.25,.5,.75].includes(pt)) continue; ev.phaseTarget=pt; }
+      if (ev.mode==='tithi'){ const t=parseInt(raw.tithi); if(!(t>=1&&t<=30)) continue; ev.tithi=t; }
+      events.push(ev); n++;
+    }
+    $('ioMsg').textContent = n ? `Imported ${n} practice${n>1?'s':''} ✓` : 'No valid practices found.';
+    refreshEvents();
+  } catch { $('ioMsg').textContent = 'Could not parse that JSON.'; }
+};
+
+/* ============================================================
+   CLOCK / TICKERS / INIT
+============================================================ */
+function tick(){
+  const now = new Date();
+  $('clkTime').textContent = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  $('clkDate').textContent = now.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+  updateCountdowns();
+}
+setInterval(tick, 1000);
+setInterval(() => { if (state.live) renderHero(); }, 30000);   // gentle live refresh
+
+sizeCanvases();
+renderMoonImage(phaseAt(new Date()));
+renderHero();
+refreshEvents();
+tick();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
